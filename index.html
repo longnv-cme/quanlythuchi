@@ -1,0 +1,1275 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý thu chi</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #dbe4f0;
+      --primary: #2563eb;
+      --primary-2: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --income: #059669;
+      --expense: #dc2626;
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero, .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 22px 24px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+
+    .card {
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .row, .filters, .actions, .auth-grid, .form-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select, button, textarea {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      min-height: 44px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.15);
+      border-color: var(--primary);
+    }
+
+    input.invalid, textarea.invalid, input.invalid-date {
+      border-color: var(--danger);
+      background: var(--danger-bg);
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: #fff;
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover { filter: brightness(0.98); }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      filter: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover { background: var(--primary-2); }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fff;
+    }
+
+    .status {
+      margin-top: 10px;
+      min-height: 22px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status.success { color: var(--success); }
+    .status.error { color: var(--danger); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .type-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      min-height: 44px;
+    }
+
+    .type-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      min-height: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .type-toggle label {
+      margin: 0;
+      padding: 10px 18px;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 100px;
+      font-weight: 700;
+    }
+
+    .type-toggle input:checked + label {
+      color: #fff;
+    }
+
+    .type-toggle input[value="expense"]:checked + label {
+      background: var(--expense);
+    }
+
+    .type-toggle input[value="income"]:checked + label {
+      background: var(--income);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      background: #f8fbff;
+      font-size: 14px;
+    }
+
+    td.right, th.right { text-align: right; }
+    td.center, th.center { text-align: center; }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: linear-gradient(180deg, #fff, #f8fbff);
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .kpi .value {
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .kpi.income-card {
+      background: linear-gradient(180deg, #ffffff, #f0fdf4);
+      border-color: #bbf7d0;
+    }
+
+    .kpi.expense-card {
+      background: linear-gradient(180deg, #ffffff, #fef2f2);
+      border-color: #fecaca;
+    }
+
+    .kpi.balance-card {
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+      border-color: #bfdbfe;
+    }
+
+    .big-total {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-top: 8px;
+    }
+
+    .history-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.expense {
+      background: #fef2f2;
+      color: var(--expense);
+    }
+
+    .tag.income {
+      background: #f0fdf4;
+      color: var(--income);
+    }
+
+    .money.expense { color: var(--expense); font-weight: 700; }
+    .money.income { color: var(--income); font-weight: 700; }
+
+    .chart-wrap {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      overflow: auto;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100%;
+      width: 100%;
+    }
+
+    @media (max-width: 980px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <div>
+          <h1>Quản lý thu chi</h1>
+        </div>
+        <div class="pill">Realtime Database</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tài khoản</h2>
+      <div class="auth-grid">
+        <div style="flex:1 1 260px;">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="name@example.com" />
+        </div>
+        <div style="flex:1 1 260px;">
+          <label for="password">Mật khẩu</label>
+          <input id="password" type="password" placeholder="Tối thiểu 6 ký tự" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 12px;">
+        <button id="btnRegister" class="btn-primary" type="button">Đăng ký</button>
+        <button id="btnLogin" type="button">Đăng nhập</button>
+        <button id="btnLogout" class="btn-danger" type="button" disabled>Đăng xuất</button>
+        <span id="authStatus" class="status" style="margin-top:0;">Chưa đăng nhập</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>Nhập giao dịch</h2>
+        <div class="form-grid">
+          <div style="flex:1 1 220px; max-width: 260px;">
+            <label>Loại giao dịch</label>
+            <div class="type-toggle">
+              <input id="typeExpense" type="radio" name="entryType" value="expense" checked />
+              <label for="typeExpense">Chi</label>
+              <input id="typeIncome" type="radio" name="entryType" value="income" />
+              <label for="typeIncome">Thu</label>
+            </div>
+          </div>
+          <div style="flex:1 1 220px; max-width: 220px;">
+            <label for="entryDate">Ngày</label>
+            <input id="entryDate" type="date" />
+          </div>
+          <div style="flex:1 1 220px; max-width: 260px;">
+            <label for="entryAmount">Số tiền (VND)</label>
+            <input id="entryAmount" type="text" inputmode="numeric" placeholder="Ví dụ: 120000" />
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <label for="entryContent">Nội dung</label>
+          <textarea id="entryContent" placeholder="Ví dụ: Mua sách, nhận lương, tiền ăn, học phí, bán đồ cũ..."></textarea>
+        </div>
+        <div class="actions" style="margin-top: 12px;">
+          <button id="btnSave" class="btn-primary" type="button" disabled>Lưu giao dịch</button>
+          <button id="btnReset" type="button">Xóa ô nhập</button>
+        </div>
+        <div id="inputStatus" class="status"></div>
+        <div class="small">Mặc định là <b>Chi</b>. Có thể chọn ngày quá khứ để nhập bù. Không thể chọn ngày lớn hơn ngày hiện tại.</div>
+      </div>
+
+      <div class="card">
+        <h2>Thống kê</h2>
+        <div class="filters">
+          <div style="flex:1 1 150px;">
+            <label for="fromDate">Từ ngày</label>
+            <input id="fromDate" type="date" />
+          </div>
+          <div style="flex:1 1 150px;">
+            <label for="toDate">Đến ngày</label>
+            <input id="toDate" type="date" />
+          </div>
+          <div style="flex:1 1 140px;">
+            <label for="groupBy">Gom theo thời gian</label>
+            <select id="groupBy">
+              <option value="day">Ngày</option>
+              <option value="week">Tuần</option>
+              <option value="month">Tháng</option>
+              <option value="year">Năm</option>
+            </select>
+          </div>
+          <div style="flex:1 1 180px;">
+            <label for="typeFilter">Lọc loại giao dịch</label>
+            <select id="typeFilter">
+              <option value="all">Tất cả</option>
+              <option value="expense">Chỉ Chi</option>
+              <option value="income">Chỉ Thu</option>
+            </select>
+          </div>
+        </div>
+        <div class="filters" style="margin-top: 12px;">
+          <div style="flex:1 1 280px;">
+            <label for="contentKeyword">Lọc / tra cứu theo nội dung</label>
+            <input id="contentKeyword" type="text" placeholder="Ví dụ: sách, lương, ăn sáng, học phí..." />
+          </div>
+        </div>
+        <div class="actions" style="margin-top: 12px;">
+          <button id="btnLoadStats" class="btn-primary" type="button">Xem thống kê</button>
+          <button id="btnExportStats" type="button">Xuất CSV thống kê thời gian</button>
+          <button id="btnClearFilters" type="button">Xóa bộ lọc</button>
+        </div>
+        <div id="statsStatus" class="status">Chưa có dữ liệu thống kê.</div>
+
+        <div class="grid-4" style="margin-top: 14px;">
+          <div class="kpi">
+            <div class="label">Số giao dịch</div>
+            <div class="value" id="kpiCount">0</div>
+          </div>
+          <div class="kpi income-card">
+            <div class="label">Tổng thu</div>
+            <div class="value" id="kpiIncome">0</div>
+          </div>
+          <div class="kpi expense-card">
+            <div class="label">Tổng chi</div>
+            <div class="value" id="kpiExpense">0</div>
+          </div>
+          <div class="kpi balance-card">
+            <div class="label">Cân đối</div>
+            <div class="value" id="kpiBalance">0</div>
+          </div>
+        </div>
+
+        <div class="kpi" style="margin-top: 14px;">
+          <div class="label">Số tiền đang nhập</div>
+          <div class="big-total" id="currentAmountBig">0 VND</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>Tổng hợp theo thời gian</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Kỳ</th>
+                <th class="right">Số GD</th>
+                <th class="right">Tổng thu</th>
+                <th class="right">Tổng chi</th>
+                <th class="right">Cân đối</th>
+              </tr>
+            </thead>
+            <tbody id="statsBody">
+              <tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tổng hợp theo nội dung</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nội dung</th>
+                <th class="right">Số GD</th>
+                <th class="right">Tổng thu</th>
+                <th class="right">Tổng chi</th>
+                <th class="right">Cân đối</th>
+              </tr>
+            </thead>
+            <tbody id="contentStatsBody">
+              <tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>Biểu đồ cân đối theo thời gian</h2>
+        <div class="chart-wrap">
+          <canvas id="statsChart" width="1000" height="360"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tra cứu nhanh theo nội dung</h2>
+        <div class="small" id="contentSummary">Nhập từ khóa nội dung để xem tổng thu, tổng chi và cân đối tương ứng, ví dụ: sách trong năm 2025.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Lịch sử thu chi</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Loại</th>
+              <th>Nội dung</th>
+              <th class="right">Số tiền</th>
+              <th class="center">Xóa</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import {
+      getDatabase,
+      ref,
+      push,
+      onValue,
+      remove,
+      serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjvrLqQmoAM6PmcZIpsx8-6diJVsHNibs",
+      authDomain: "quanlythuchi-d0be3.firebaseapp.com",
+      databaseURL: "https://quanlythuchi-d0be3-default-rtdb.firebaseio.com",
+      projectId: "quanlythuchi-d0be3",
+      storageBucket: "quanlythuchi-d0be3.firebasestorage.app",
+      messagingSenderId: "1038710925664",
+      appId: "1:1038710925664:web:c697b58375bb557cc39605",
+      measurementId: "G-L76SQ9XQ4T"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const btnRegister = document.getElementById('btnRegister');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnLogout = document.getElementById('btnLogout');
+    const authStatus = document.getElementById('authStatus');
+
+    const entryDateEl = document.getElementById('entryDate');
+    const entryAmountEl = document.getElementById('entryAmount');
+    const entryContentEl = document.getElementById('entryContent');
+    const btnSave = document.getElementById('btnSave');
+    const btnReset = document.getElementById('btnReset');
+    const inputStatus = document.getElementById('inputStatus');
+    const currentAmountBig = document.getElementById('currentAmountBig');
+    const entryTypeEls = document.querySelectorAll('input[name="entryType"]');
+
+    const fromDateEl = document.getElementById('fromDate');
+    const toDateEl = document.getElementById('toDate');
+    const groupByEl = document.getElementById('groupBy');
+    const contentKeywordEl = document.getElementById('contentKeyword');
+    const typeFilterEl = document.getElementById('typeFilter');
+    const btnLoadStats = document.getElementById('btnLoadStats');
+    const btnExportStats = document.getElementById('btnExportStats');
+    const btnClearFilters = document.getElementById('btnClearFilters');
+    const statsStatus = document.getElementById('statsStatus');
+    const statsBody = document.getElementById('statsBody');
+    const contentStatsBody = document.getElementById('contentStatsBody');
+    const contentSummary = document.getElementById('contentSummary');
+
+    const kpiCount = document.getElementById('kpiCount');
+    const kpiIncome = document.getElementById('kpiIncome');
+    const kpiExpense = document.getElementById('kpiExpense');
+    const kpiBalance = document.getElementById('kpiBalance');
+
+    const historyBody = document.getElementById('historyBody');
+    const canvas = document.getElementById('statsChart');
+    const ctx = canvas.getContext('2d');
+
+    let currentUser = null;
+    let unsubscribeRecords = null;
+    let allRecords = [];
+    let lastGroupedStats = [];
+
+    function formatThousands(n) {
+      return Number(n || 0).toLocaleString('en-US');
+    }
+
+    function formatCurrency(n) {
+      const num = Number(n || 0);
+      const sign = num < 0 ? '-' : '';
+      return `${sign}${formatThousands(Math.abs(num))} VND`;
+    }
+
+    function formatSignedCurrency(n) {
+      const num = Number(n || 0);
+      if (num > 0) return `+${formatThousands(num)} VND`;
+      if (num < 0) return `-${formatThousands(Math.abs(num))} VND`;
+      return '0 VND';
+    }
+
+    function formatDateTime(value) {
+      const d = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleString('vi-VN');
+    }
+
+    function parseDateSafe(value) {
+      if (value == null) return null;
+      if (value instanceof Date) return value;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function getTodayLocalDateString() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function isFutureDateString(dateStr) {
+      if (!dateStr) return false;
+      return dateStr > getTodayLocalDateString();
+    }
+
+    function getSelectedEntryType() {
+      const selected = document.querySelector('input[name="entryType"]:checked');
+      return selected ? selected.value : 'expense';
+    }
+
+    function initializeEntryDate() {
+      const today = getTodayLocalDateString();
+      entryDateEl.max = today;
+      entryDateEl.value = today;
+      validateEntryDate();
+    }
+
+    function validateEntryDate() {
+      const today = getTodayLocalDateString();
+      entryDateEl.max = today;
+      const selected = entryDateEl.value || today;
+      const invalid = isFutureDateString(selected);
+      entryDateEl.classList.toggle('invalid-date', invalid);
+
+      const loggedIn = !!currentUser;
+      btnSave.disabled = !loggedIn || invalid;
+      entryAmountEl.disabled = invalid;
+      entryContentEl.disabled = invalid;
+      entryTypeEls.forEach(el => { el.disabled = invalid; });
+
+      if (invalid) {
+        inputStatus.textContent = 'Ngày giao dịch không được lớn hơn ngày hiện tại.';
+        inputStatus.className = 'status error';
+        return false;
+      }
+
+      if (inputStatus.textContent === 'Ngày giao dịch không được lớn hơn ngày hiện tại.') {
+        inputStatus.textContent = '';
+        inputStatus.className = 'status';
+      }
+      return true;
+    }
+
+    function getSelectedEntryTimestamp() {
+      const today = getTodayLocalDateString();
+      const selected = entryDateEl.value || today;
+      const safeDate = selected > today ? today : selected;
+      entryDateEl.value = safeDate;
+      return new Date(`${safeDate}T12:00:00`).getTime();
+    }
+
+    function sanitizeAmountInput() {
+      const raw = entryAmountEl.value || '';
+      const cleaned = raw.replace(/\s+/g, '').replace(/,/g, '');
+      if (raw !== cleaned) entryAmountEl.value = cleaned;
+      return cleaned;
+    }
+
+    function recalcEntryInput() {
+      if (!validateEntryDate()) return false;
+
+      if (inputStatus.textContent !== 'Ngày giao dịch không được lớn hơn ngày hiện tại.') {
+        inputStatus.textContent = '';
+        inputStatus.className = 'status';
+      }
+
+      entryAmountEl.classList.remove('invalid');
+      entryContentEl.classList.remove('invalid');
+
+      const cleaned = sanitizeAmountInput();
+      if (cleaned === '') {
+        currentAmountBig.textContent = '0 VND';
+        return true;
+      }
+
+      if (!/^\d+$/.test(cleaned)) {
+        entryAmountEl.classList.add('invalid');
+        currentAmountBig.textContent = '0 VND';
+        inputStatus.textContent = 'Số tiền chỉ được nhập số nguyên không âm.';
+        inputStatus.className = 'status error';
+        return false;
+      }
+
+      currentAmountBig.textContent = formatCurrency(Number(cleaned));
+      return true;
+    }
+
+    function resetInputs() {
+      entryAmountEl.value = '';
+      entryContentEl.value = '';
+      document.getElementById('typeExpense').checked = true;
+      entryAmountEl.classList.remove('invalid');
+      entryContentEl.classList.remove('invalid');
+      currentAmountBig.textContent = '0 VND';
+      inputStatus.textContent = '';
+      inputStatus.className = 'status';
+    }
+
+    function setAuthUI(user) {
+      const loggedIn = !!user;
+      btnRegister.disabled = loggedIn;
+      btnLogin.disabled = loggedIn;
+      emailEl.disabled = loggedIn;
+      passwordEl.disabled = loggedIn;
+      btnLogout.disabled = !loggedIn;
+
+      if (loggedIn) {
+        authStatus.textContent = `Đã đăng nhập: ${user.email}`;
+        authStatus.className = 'status success';
+      } else {
+        authStatus.textContent = 'Chưa đăng nhập';
+        authStatus.className = 'status';
+      }
+      validateEntryDate();
+    }
+
+    async function registerUser() {
+      try {
+        const email = emailEl.value.trim();
+        const password = passwordEl.value;
+        if (!email || !password) throw new Error('Vui lòng nhập email và mật khẩu.');
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        console.error('registerUser error:', err);
+        authStatus.textContent = `Đăng ký lỗi: ${err.message}`;
+        authStatus.className = 'status error';
+      }
+    }
+
+    async function loginUser() {
+      try {
+        const email = emailEl.value.trim();
+        const password = passwordEl.value;
+        if (!email || !password) throw new Error('Vui lòng nhập email và mật khẩu.');
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        console.error('loginUser error:', err);
+        authStatus.textContent = `Đăng nhập lỗi: ${err.message}`;
+        authStatus.className = 'status error';
+      }
+    }
+
+    async function logoutUser() {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error('logoutUser error:', err);
+        authStatus.textContent = `Đăng xuất lỗi: ${err.message}`;
+        authStatus.className = 'status error';
+      }
+    }
+
+    async function saveEntry() {
+      if (!currentUser) {
+        inputStatus.textContent = 'Bạn cần đăng nhập trước khi lưu.';
+        inputStatus.className = 'status error';
+        return;
+      }
+      if (!validateEntryDate()) return;
+      if (!recalcEntryInput()) return;
+
+      const cleanedAmount = sanitizeAmountInput();
+      const amount = cleanedAmount === '' ? 0 : Number(cleanedAmount);
+      const content = (entryContentEl.value || '').trim().replace(/\s+/g, ' ');
+      const selectedTimestamp = getSelectedEntryTimestamp();
+      const entryType = getSelectedEntryType();
+
+      entryContentEl.classList.remove('invalid');
+
+      if (amount <= 0) {
+        entryAmountEl.classList.add('invalid');
+        inputStatus.textContent = 'Bạn cần nhập số tiền lớn hơn 0.';
+        inputStatus.className = 'status error';
+        return;
+      }
+      if (!content) {
+        entryContentEl.classList.add('invalid');
+        inputStatus.textContent = 'Bạn cần nhập nội dung.';
+        inputStatus.className = 'status error';
+        return;
+      }
+
+      try {
+        await push(ref(db, `cashflow/${currentUser.uid}`), {
+          userId: currentUser.uid,
+          userEmail: currentUser.email || '',
+          entryType,
+          amount,
+          content,
+          contentNormalized: content.toLowerCase(),
+          createdAt: selectedTimestamp,
+          createdAtSaved: Date.now(),
+          serverTime: serverTimestamp()
+        });
+
+        inputStatus.textContent = 'Đã lưu giao dịch thành công.';
+        inputStatus.className = 'status success';
+        resetInputs();
+        initializeEntryDate();
+      } catch (err) {
+        console.error('saveEntry error:', err);
+        inputStatus.textContent = `Lưu thất bại: ${err.message}`;
+        inputStatus.className = 'status error';
+      }
+    }
+
+    async function deleteEntry(recordId) {
+      if (!currentUser) return;
+      const ok = window.confirm('Bạn có chắc muốn xóa giao dịch này?');
+      if (!ok) return;
+      try {
+        await remove(ref(db, `cashflow/${currentUser.uid}/${recordId}`));
+      } catch (err) {
+        console.error('deleteEntry error:', err);
+        statsStatus.textContent = `Xóa thất bại: ${err.message}`;
+        statsStatus.className = 'status error';
+      }
+    }
+
+    function getYearKey(date) {
+      const d = new Date(date);
+      return String(d.getFullYear());
+    }
+
+    function getISODateText(date) {
+      const d = parseDateSafe(date);
+      if (!d) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getWeekKey(date) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      const weekNo = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+      return `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+
+    function getMonthKey(date) {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function getGroupKey(date, groupBy) {
+      if (groupBy === 'week') return getWeekKey(date);
+      if (groupBy === 'month') return getMonthKey(date);
+      if (groupBy === 'year') return getYearKey(date);
+      return getISODateText(date);
+    }
+
+    function entryInRange(record, fromDateValue, toDateValue) {
+      const d = parseDateSafe(record.createdAt);
+      if (!d) return false;
+      const t = d.getTime();
+      const from = fromDateValue ? new Date(`${fromDateValue}T00:00:00`).getTime() : -Infinity;
+      const to = toDateValue ? new Date(`${toDateValue}T23:59:59`).getTime() : Infinity;
+      return t >= from && t <= to;
+    }
+
+    function matchesContentKeyword(record, keyword) {
+      if (!keyword) return true;
+      const source = String(record.contentNormalized || record.content || '').toLowerCase();
+      return source.includes(keyword.toLowerCase());
+    }
+
+    function matchesTypeFilter(record, typeFilter) {
+      if (!typeFilter || typeFilter === 'all') return true;
+      return String(record.entryType || 'expense') === typeFilter;
+    }
+
+    function getFilteredRecords() {
+      const fromDateValue = fromDateEl.value || '';
+      const toDateValue = toDateEl.value || '';
+      const keyword = (contentKeywordEl.value || '').trim().toLowerCase();
+      const typeFilter = typeFilterEl.value;
+      return allRecords.filter(record => (
+        entryInRange(record, fromDateValue, toDateValue)
+        && matchesContentKeyword(record, keyword)
+        && matchesTypeFilter(record, typeFilter)
+      ));
+    }
+
+    function getSignedAmount(record) {
+      const amount = Number(record.amount || 0);
+      return record.entryType === 'income' ? amount : -amount;
+    }
+
+    function renderHistory(records) {
+      if (!records.length) {
+        historyBody.innerHTML = '<tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>';
+        return;
+      }
+
+      historyBody.innerHTML = '';
+      records.forEach(record => {
+        const type = record.entryType === 'income' ? 'income' : 'expense';
+        const typeLabel = type === 'income' ? 'Thu' : 'Chi';
+        const moneyClass = type === 'income' ? 'income' : 'expense';
+        const moneyText = type === 'income'
+          ? `+${formatThousands(record.amount)}`
+          : `-${formatThousands(record.amount)}`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${formatDateTime(record.createdAt)}</td>
+          <td><span class="tag ${type}">${typeLabel}</span></td>
+          <td>${record.content || ''}</td>
+          <td class="right"><span class="money ${moneyClass}">${moneyText}</span></td>
+          <td class="center"><button type="button" class="btn-danger" data-id="${record.id}">Xóa</button></td>
+        `;
+        historyBody.appendChild(tr);
+      });
+
+      historyBody.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', () => deleteEntry(btn.dataset.id));
+      });
+    }
+
+    function renderTimeStats(records) {
+      const groupBy = groupByEl.value;
+      const map = new Map();
+      let totalIncome = 0;
+      let totalExpense = 0;
+
+      records.forEach(record => {
+        const date = parseDateSafe(record.createdAt);
+        if (!date) return;
+        const key = getGroupKey(date, groupBy);
+        const current = map.get(key) || { key, count: 0, income: 0, expense: 0, balance: 0 };
+        const amount = Number(record.amount || 0);
+        current.count += 1;
+        if (record.entryType === 'income') {
+          current.income += amount;
+          totalIncome += amount;
+        } else {
+          current.expense += amount;
+          totalExpense += amount;
+        }
+        current.balance = current.income - current.expense;
+        map.set(key, current);
+      });
+
+      const grouped = Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+      lastGroupedStats = grouped;
+
+      if (!grouped.length) {
+        statsBody.innerHTML = '<tr><td colspan="5" class="center history-note">Không có dữ liệu.</td></tr>';
+      } else {
+        statsBody.innerHTML = grouped.map(item => `
+          <tr>
+            <td>${item.key}</td>
+            <td class="right">${formatThousands(item.count)}</td>
+            <td class="right"><span class="money income">+${formatThousands(item.income)}</span></td>
+            <td class="right"><span class="money expense">-${formatThousands(item.expense)}</span></td>
+            <td class="right"><b>${formatSignedCurrency(item.balance)}</b></td>
+          </tr>
+        `).join('');
+      }
+
+      kpiCount.textContent = formatThousands(records.length);
+      kpiIncome.textContent = formatThousands(totalIncome);
+      kpiExpense.textContent = formatThousands(totalExpense);
+      kpiBalance.textContent = formatSignedCurrency(totalIncome - totalExpense);
+
+      drawChart(grouped);
+      return { totalIncome, totalExpense, balance: totalIncome - totalExpense, grouped };
+    }
+
+    function normalizeContentLabel(text) {
+      return String(text || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function renderContentStats(records) {
+      const map = new Map();
+      records.forEach(record => {
+        const key = normalizeContentLabel(record.content || 'Không có nội dung');
+        const current = map.get(key) || { key, count: 0, income: 0, expense: 0, balance: 0 };
+        const amount = Number(record.amount || 0);
+        current.count += 1;
+        if (record.entryType === 'income') current.income += amount;
+        else current.expense += amount;
+        current.balance = current.income - current.expense;
+        map.set(key, current);
+      });
+
+      const grouped = Array.from(map.values()).sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance) || a.key.localeCompare(b.key));
+
+      if (!grouped.length) {
+        contentStatsBody.innerHTML = '<tr><td colspan="5" class="center history-note">Không có dữ liệu.</td></tr>';
+      } else {
+        contentStatsBody.innerHTML = grouped.map(item => `
+          <tr>
+            <td>${item.key}</td>
+            <td class="right">${formatThousands(item.count)}</td>
+            <td class="right"><span class="money income">+${formatThousands(item.income)}</span></td>
+            <td class="right"><span class="money expense">-${formatThousands(item.expense)}</span></td>
+            <td class="right"><b>${formatSignedCurrency(item.balance)}</b></td>
+          </tr>
+        `).join('');
+      }
+
+      return grouped;
+    }
+
+    function renderContentSummary(records, totals) {
+      const keyword = (contentKeywordEl.value || '').trim();
+      const fromDateValue = fromDateEl.value || 'bắt đầu';
+      const toDateValue = toDateEl.value || 'hiện tại';
+      const typeText = typeFilterEl.value === 'all'
+        ? 'mọi giao dịch'
+        : (typeFilterEl.value === 'income' ? 'chỉ Thu' : 'chỉ Chi');
+
+      if (!keyword) {
+        contentSummary.textContent = 'Nhập từ khóa nội dung để xem tổng thu, tổng chi và cân đối tương ứng, ví dụ: sách trong năm 2025.';
+        return;
+      }
+
+      contentSummary.textContent = `Từ khóa "${keyword}" trong khoảng ${fromDateValue} đến ${toDateValue} (${typeText}): Thu ${formatCurrency(totals.totalIncome)}, Chi ${formatCurrency(totals.totalExpense)}, Cân đối ${formatSignedCurrency(totals.balance)} trên ${formatThousands(records.length)} giao dịch.`;
+    }
+
+    function renderAllStats(records) {
+      const totals = renderTimeStats(records);
+      renderContentStats(records);
+      renderContentSummary(records, totals);
+
+      if (records.length) {
+        statsStatus.textContent = `Đã thống kê ${records.length} giao dịch.`;
+        statsStatus.className = 'status success';
+      } else {
+        statsStatus.textContent = 'Chưa có dữ liệu thống kê.';
+        statsStatus.className = 'status';
+      }
+    }
+
+    function drawChart(grouped) {
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      if (!grouped.length) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '16px system-ui';
+        ctx.fillText('Chưa có dữ liệu để vẽ biểu đồ.', 24, 40);
+        return;
+      }
+
+      const padding = { top: 24, right: 24, bottom: 78, left: 86 };
+      const chartW = width - padding.left - padding.right;
+      const chartH = height - padding.top - padding.bottom;
+      const maxValue = Math.max(...grouped.map(x => Math.max(x.income, x.expense, Math.abs(x.balance))), 1);
+      const gap = 12;
+      const clusterW = Math.max(42, (chartW - gap * (grouped.length - 1)) / grouped.length);
+      const barW = Math.max(10, Math.floor(clusterW / 3) - 4);
+
+      ctx.strokeStyle = '#dbe4f0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const y = padding.top + (chartH / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        const value = Math.round(maxValue - (maxValue / 5) * i);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatThousands(value), padding.left - 8, y + 4);
+      }
+
+      grouped.forEach((item, index) => {
+        const baseX = padding.left + index * (clusterW + gap);
+        const incomeH = (item.income / maxValue) * chartH;
+        const expenseH = (item.expense / maxValue) * chartH;
+        const balanceAbs = Math.abs(item.balance);
+        const balanceH = (balanceAbs / maxValue) * chartH;
+
+        const incomeY = padding.top + chartH - incomeH;
+        const expenseY = padding.top + chartH - expenseH;
+        const balanceY = padding.top + chartH - balanceH;
+
+        ctx.fillStyle = '#059669';
+        ctx.fillRect(baseX, incomeY, barW, incomeH);
+
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(baseX + barW + 4, expenseY, barW, expenseH);
+
+        ctx.fillStyle = item.balance >= 0 ? '#2563eb' : '#7c3aed';
+        ctx.fillRect(baseX + (barW + 4) * 2, balanceY, barW, balanceH);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.font = '12px system-ui';
+        ctx.fillText(item.key, baseX + clusterW / 2, height - 40);
+      });
+    }
+
+    function applyFiltersAndRender() {
+      const filtered = getFilteredRecords();
+      renderHistory(filtered);
+      renderAllStats(filtered);
+    }
+
+    function exportStatsCsv() {
+      if (!lastGroupedStats.length) {
+        statsStatus.textContent = 'Không có dữ liệu để xuất CSV.';
+        statsStatus.className = 'status error';
+        return;
+      }
+      const rows = [['Ky', 'So_giao_dich', 'Tong_thu', 'Tong_chi', 'Can_doi']];
+      lastGroupedStats.forEach(item => rows.push([item.key, item.count, item.income, item.expense, item.balance]));
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'thong-ke-thu-chi-theo-thoi-gian.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function subscribeUserRecords(user) {
+      if (typeof unsubscribeRecords === 'function') {
+        unsubscribeRecords();
+        unsubscribeRecords = null;
+      }
+
+      const userRef = ref(db, `cashflow/${user.uid}`);
+      unsubscribeRecords = onValue(
+        userRef,
+        snapshot => {
+          const val = snapshot.val() || {};
+          const records = Object.entries(val).map(([id, item]) => ({ id, ...item }));
+          records.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+          allRecords = records;
+          applyFiltersAndRender();
+        },
+        error => {
+          console.error('subscribeUserRecords error:', error);
+          statsStatus.textContent = `Không thể tải dữ liệu: ${error.message}`;
+          statsStatus.className = 'status error';
+        }
+      );
+    }
+
+    function clearDataUI() {
+      allRecords = [];
+      lastGroupedStats = [];
+      renderHistory([]);
+      renderAllStats([]);
+    }
+
+    btnRegister.addEventListener('click', registerUser);
+    btnLogin.addEventListener('click', loginUser);
+    btnLogout.addEventListener('click', logoutUser);
+    btnSave.addEventListener('click', saveEntry);
+    btnReset.addEventListener('click', resetInputs);
+    btnLoadStats.addEventListener('click', applyFiltersAndRender);
+    btnClearFilters.addEventListener('click', () => {
+      fromDateEl.value = '';
+      toDateEl.value = '';
+      groupByEl.value = 'day';
+      contentKeywordEl.value = '';
+      typeFilterEl.value = 'all';
+      applyFiltersAndRender();
+    });
+    btnExportStats.addEventListener('click', exportStatsCsv);
+    groupByEl.addEventListener('change', applyFiltersAndRender);
+    typeFilterEl.addEventListener('change', applyFiltersAndRender);
+    contentKeywordEl.addEventListener('input', applyFiltersAndRender);
+    entryDateEl.addEventListener('input', () => {
+      validateEntryDate();
+      recalcEntryInput();
+    });
+    entryDateEl.addEventListener('change', () => {
+      validateEntryDate();
+      recalcEntryInput();
+    });
+    entryAmountEl.addEventListener('input', recalcEntryInput);
+    entryAmountEl.addEventListener('blur', recalcEntryInput);
+    entryTypeEls.forEach(el => el.addEventListener('change', recalcEntryInput));
+
+    onAuthStateChanged(auth, user => {
+      currentUser = user;
+      setAuthUI(user);
+      if (user) {
+        subscribeUserRecords(user);
+      } else {
+        if (typeof unsubscribeRecords === 'function') {
+          unsubscribeRecords();
+          unsubscribeRecords = null;
+        }
+        clearDataUI();
+      }
+    });
+
+    initializeEntryDate();
+    recalcEntryInput();
+    drawChart([]);
+  </script>
+</body>
+</html>
