@@ -709,8 +709,7 @@
       sendPasswordResetEmail,
       updatePassword,
       EmailAuthProvider,
-      reauthenticateWithCredential,
-      fetchSignInMethodsForEmail
+      reauthenticateWithCredential
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import {
       getDatabase,
@@ -1031,6 +1030,31 @@
       btnToggleChangePassword.classList.remove('active');
     }
 
+    function resetAuthPanelsForFreshView(mode = 'login') {
+      closeAuthSubPanels();
+      clearChangePasswordForm();
+      clearProfileStatus();
+
+      loginPasswordEl.value = '';
+      registerNameEl.value = '';
+      registerPasswordEl.value = '';
+      registerPasswordConfirmEl.value = '';
+
+      showLoginPasswordEl.checked = false;
+      showRegisterPasswordEl.checked = false;
+      showChangePasswordEl.checked = false;
+
+      setPasswordVisibility([loginPasswordEl], false);
+      setPasswordVisibility([registerPasswordEl, registerPasswordConfirmEl], false);
+      setPasswordVisibility([currentPasswordEl, newPasswordEl, newPasswordConfirmEl], false);
+
+      if (mode === 'register') {
+        showRegisterMode();
+      } else {
+        showLoginMode();
+      }
+    }
+
     async function setAuthUI(user) {
       const loggedIn = !!user;
 
@@ -1044,16 +1068,14 @@
         authStatus.textContent = 'Đăng nhập thành công.';
         authStatus.className = 'status success';
         profileDisplayNameEl.value = currentProfileName;
+        closeAuthSubPanels();
       } else {
         currentProfileName = '';
         authLoggedOut.classList.remove('hidden');
         authLoggedIn.classList.add('hidden');
         authStatus.textContent = 'Chưa đăng nhập';
         authStatus.className = 'status';
-        clearChangePasswordForm();
-        clearProfileStatus();
-        closeAuthSubPanels();
-        showLoginMode();
+        resetAuthPanelsForFreshView('login');
       }
 
       validateEntryDate();
@@ -1087,6 +1109,7 @@
 
         lastUsedEmail = email;
         localStorage.setItem('lastUsedEmail', email);
+        resetAuthPanelsForFreshView('login');
       } catch (err) {
         console.error('registerUser error:', err);
         authStatus.textContent = `Đăng ký lỗi: ${err.message}`;
@@ -1106,6 +1129,7 @@
         await signInWithEmailAndPassword(auth, email, password);
         lastUsedEmail = email;
         localStorage.setItem('lastUsedEmail', email);
+        resetAuthPanelsForFreshView('login');
       } catch (err) {
         console.error('loginUser error:', err);
         authStatus.textContent = `Đăng nhập lỗi: ${err.message}`;
@@ -1129,8 +1153,11 @@
         if (!email) {
           throw new Error('Hãy nhập email tài khoản cần đặt lại mật khẩu.');
         }
+
         await sendPasswordResetEmail(auth, email);
-        authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}.`;
+        lastUsedEmail = email;
+        localStorage.setItem('lastUsedEmail', email);
+        authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}. Hãy kiểm tra Inbox và cả Spam/Junk.`;
         authStatus.className = 'status success';
       } catch (err) {
         console.error('forgotPassword error:', err);
@@ -1163,6 +1190,7 @@
         await reauthenticateWithCredential(currentUser, credential);
         await updatePassword(currentUser, newPassword);
 
+        closeAuthSubPanels();
         clearChangePasswordForm();
         changePasswordStatus.textContent = 'Đã thay đổi mật khẩu thành công.';
         changePasswordStatus.className = 'status success';
@@ -1191,6 +1219,8 @@
 
         currentProfileName = displayName;
         authUserInfo.textContent = `Xin chào ${currentProfileName}, bạn đã đăng nhập thành công với email ${currentUser.email}.`;
+        closeAuthSubPanels();
+        clearProfileStatus();
         profileStatus.textContent = 'Đã cập nhật tên người dùng.';
         profileStatus.className = 'status success';
       } catch (err) {
