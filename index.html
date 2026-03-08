@@ -1,5 +1,5 @@
 <!doctype html>
-<!--Bản R0.4 cập nhật chức năng chỉnh sửa phần lịch sử nhập thu chi  - đang test-->
+<!--Bản R0.4 cập nhật chức năng chỉnh sửa lịch sử thu chi-->
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -688,6 +688,7 @@
               <th>Loại</th>
               <th>Nội dung</th>
               <th class="right">Số tiền</th>
+              <th class="center">Sửa</th>
               <th class="center">Xóa</th>
             </tr>
           </thead>
@@ -1286,6 +1287,45 @@
       }
     }
 
+    async function editEntry(recordId) {
+      if (!currentUser) return;
+
+      const record = allRecords.find(r => r.id === recordId);
+      if (!record) return;
+
+      const newDate = prompt('Nhập ngày (YYYY-MM-DD):', getISODateText(record.createdAt));
+      if (!newDate) return;
+
+      const newType = prompt('Nhập loại (income hoặc expense):', record.entryType);
+      if (!newType) return;
+
+      const newContent = prompt('Nhập nội dung:', record.content);
+      if (!newContent) return;
+
+      const newAmountStr = prompt('Nhập số tiền:', record.amount);
+      if (!newAmountStr) return;
+
+      const newAmount = Number(String(newAmountStr).replace(/[^0-9]/g,''));
+      if (!newAmount || newAmount <= 0) {
+        alert('Số tiền không hợp lệ');
+        return;
+      }
+
+      try {
+        await update(ref(db, `cashflow/${currentUser.uid}/${recordId}`), {
+          entryType: newType === 'income' ? 'income' : 'expense',
+          amount: newAmount,
+          content: newContent.trim(),
+          contentNormalized: newContent.trim().toLowerCase(),
+          createdAt: new Date(`${newDate}T12:00:00`).getTime(),
+          updatedAt: Date.now()
+        });
+      } catch (err) {
+        console.error('editEntry error:', err);
+        alert('Không thể cập nhật: ' + err.message);
+      }
+    }
+
     async function deleteEntry(recordId) {
       if (!currentUser) return;
       const ok = window.confirm('Bạn có chắc muốn xóa giao dịch này?');
@@ -1387,6 +1427,7 @@
           <td><span class="tag ${type}">${typeLabel}</span></td>
           <td>${record.content || ''}</td>
           <td class="right"><span class="money ${moneyClass}">${moneyText}</span></td>
+          <td class="center"><button type="button" class="btn-soft" data-edit="${record.id}">Chỉnh sửa</button></td>
           <td class="center"><button type="button" class="btn-danger" data-id="${record.id}">Xóa</button></td>
         `;
         historyBody.appendChild(tr);
@@ -1394,6 +1435,10 @@
 
       historyBody.querySelectorAll('button[data-id]').forEach(btn => {
         btn.addEventListener('click', () => deleteEntry(btn.dataset.id));
+      });
+
+      historyBody.querySelectorAll('button[data-edit]').forEach(btn => {
+        btn.addEventListener('click', () => editEntry(btn.dataset.edit));
       });
     }
 
@@ -1705,5 +1750,73 @@
     recalcEntryInput();
     drawChart([]);
   </script>
+  
+  <!-- Popup chỉnh sửa giao dịch -->
+  <div id="editModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:9999;">
+    <div style="background:#fff;border-radius:16px;padding:20px;max-width:420px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
+      <h3 style="margin-top:0">Chỉnh sửa giao dịch</h3>
+      <label>Ngày</label>
+      <input id="editDate" type="date" />
+      <label style="margin-top:10px">Loại</label>
+      <select id="editType">
+        <option value="expense">Chi</option>
+        <option value="income">Thu</option>
+      </select>
+      <label style="margin-top:10px">Nội dung</label>
+      <input id="editContent" type="text" />
+      <label style="margin-top:10px">Số tiền</label>
+      <input id="editAmount" type="text" />
+      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+        <button id="btnCancelEdit" class="btn-soft" type="button">Hủy</button>
+        <button id="btnSaveEdit" class="btn-primary" type="button">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+let editingRecordId = null;
+const editModal = document.getElementById('editModal');
+const editDate = document.getElementById('editDate');
+const editType = document.getElementById('editType');
+const editContent = document.getElementById('editContent');
+const editAmount = document.getElementById('editAmount');
+const btnSaveEdit = document.getElementById('btnSaveEdit');
+const btnCancelEdit = document.getElementById('btnCancelEdit');
+
+function openEditModal(record){
+  editingRecordId = record.id;
+  editDate.value = new Date(record.createdAt).toISOString().slice(0,10);
+  editType.value = record.entryType;
+  editContent.value = record.content;
+  editAmount.value = record.amount;
+  editModal.classList.remove('hidden');
+}
+
+btnCancelEdit.onclick = ()=>{
+  editModal.classList.add('hidden');
+  editingRecordId = null;
+};
+
+btnSaveEdit.onclick = async ()=>{
+  if(!editingRecordId || !currentUser) return;
+
+  const amount = Number(String(editAmount.value).replace(/[^0-9]/g,''));
+  if(!amount){ alert('Số tiền không hợp lệ'); return; }
+
+  const newDate = new Date(editDate.value + 'T12:00:00').getTime();
+
+  await update(ref(db,`cashflow/${currentUser.uid}/${editingRecordId}`),{
+    entryType: editType.value,
+    content: editContent.value.trim(),
+    contentNormalized: editContent.value.trim().toLowerCase(),
+    amount: amount,
+    createdAt: newDate,
+    updatedAt: Date.now()
+  });
+
+  editModal.classList.add('hidden');
+  editingRecordId = null;
+};
+</script>
 </body>
 </html>
