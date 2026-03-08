@@ -1,5 +1,4 @@
 <!doctype html>
-<!--Bản r0.2 cập nhật thêm phần đổi mật khẩu trong khi đang dăng nhập và thêm tên người dùng, sẽ phải đổi lại rules vì có thểm trường tên người dùng-->
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -11,6 +10,7 @@
       --card: #ffffff;
       --text: #0f172a;
       --muted: #64748b;
+      --muted-2: #94a3b8;
       --border: #dbe4f0;
       --primary: #2563eb;
       --primary-2: #1d4ed8;
@@ -19,6 +19,8 @@
       --success: #16a34a;
       --income: #059669;
       --expense: #dc2626;
+      --soft-btn-bg: #f8fafc;
+      --soft-btn-text: #64748b;
       --radius: 18px;
       --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
     }
@@ -159,6 +161,19 @@
       color: var(--danger);
       border-color: #fecaca;
       background: #fff;
+    }
+
+    .btn-soft {
+      background: var(--soft-btn-bg);
+      color: var(--soft-btn-text);
+      border-color: var(--border);
+      font-weight: 500;
+    }
+
+    .btn-soft.active {
+      background: #eff6ff;
+      color: var(--primary);
+      border-color: #bfdbfe;
     }
 
     .status {
@@ -398,8 +413,8 @@
 
       <div id="authLoggedOut">
         <div class="auth-switch">
-          <button id="btnShowLogin" class="btn-primary" type="button">Đăng nhập</button>
-          <button id="btnShowRegister" type="button">Đăng ký</button>
+          <button id="btnShowLogin" class="btn-soft active" type="button">Đăng nhập</button>
+          <button id="btnShowRegister" class="btn-soft" type="button">Đăng ký</button>
         </div>
 
         <div id="loginPanel" class="auth-panel">
@@ -455,10 +470,26 @@
       <div id="authLoggedIn" class="hidden">
         <div class="actions">
           <span id="authUserInfo" class="status" style="margin-top:0;"></span>
-          <button id="btnLogout" class="btn-danger" type="button">Đăng xuất</button>
+          <button id="btnToggleProfile" class="btn-soft" type="button">Đổi tên người dùng</button>
+          <button id="btnToggleChangePassword" class="btn-soft" type="button">Đổi mật khẩu</button>
+          <button id="btnLogout" class="btn-soft" type="button">Đăng xuất</button>
         </div>
 
-        <div class="subcard">
+        <div id="profilePanel" class="subcard hidden">
+          <h3>Cập nhật tên người dùng</h3>
+          <div class="auth-grid">
+            <div style="flex:1 1 320px; max-width: 420px;">
+              <label for="profileDisplayName">Tên người dùng</label>
+              <input id="profileDisplayName" type="text" placeholder="Nhập tên người dùng" />
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 12px;">
+            <button id="btnSaveProfile" class="btn-primary" type="button">Lưu tên người dùng</button>
+          </div>
+          <div id="profileStatus" class="status"></div>
+        </div>
+
+        <div id="changePasswordPanel" class="subcard hidden">
           <h3>Đổi mật khẩu</h3>
           <div class="auth-grid">
             <div style="flex:1 1 220px;">
@@ -678,7 +709,8 @@
       sendPasswordResetEmail,
       updatePassword,
       EmailAuthProvider,
-      reauthenticateWithCredential
+      reauthenticateWithCredential,
+      fetchSignInMethodsForEmail
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import {
       getDatabase,
@@ -688,7 +720,8 @@
       remove,
       serverTimestamp,
       set,
-      get
+      get,
+      update
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const firebaseConfig = {
@@ -730,6 +763,14 @@
     const btnRegister = document.getElementById('btnRegister');
     const btnLogout = document.getElementById('btnLogout');
 
+    const btnToggleProfile = document.getElementById('btnToggleProfile');
+    const profilePanel = document.getElementById('profilePanel');
+    const profileDisplayNameEl = document.getElementById('profileDisplayName');
+    const btnSaveProfile = document.getElementById('btnSaveProfile');
+    const profileStatus = document.getElementById('profileStatus');
+
+    const btnToggleChangePassword = document.getElementById('btnToggleChangePassword');
+    const changePasswordPanel = document.getElementById('changePasswordPanel');
     const currentPasswordEl = document.getElementById('currentPassword');
     const newPasswordEl = document.getElementById('newPassword');
     const newPasswordConfirmEl = document.getElementById('newPasswordConfirm');
@@ -775,11 +816,15 @@
     let lastGroupedStats = [];
     let lastUsedEmail = localStorage.getItem('lastUsedEmail') || '';
 
+    function setActiveTopButton(active) {
+      btnShowLogin.classList.toggle('active', active === 'login');
+      btnShowRegister.classList.toggle('active', active === 'register');
+    }
+
     function showLoginMode() {
       loginPanel.classList.remove('hidden');
       registerPanel.classList.add('hidden');
-      btnShowLogin.classList.add('btn-primary');
-      btnShowRegister.classList.remove('btn-primary');
+      setActiveTopButton('login');
       loginEmailEl.value = lastUsedEmail;
       loginPasswordEl.value = '';
     }
@@ -787,8 +832,7 @@
     function showRegisterMode() {
       registerPanel.classList.remove('hidden');
       loginPanel.classList.add('hidden');
-      btnShowRegister.classList.add('btn-primary');
-      btnShowLogin.classList.remove('btn-primary');
+      setActiveTopButton('register');
       registerEmailEl.value = lastUsedEmail;
       registerNameEl.value = '';
       registerPasswordEl.value = '';
@@ -862,12 +906,6 @@
     function getSelectedEntryType() {
       const selected = document.querySelector('input[name="entryType"]:checked');
       return selected ? selected.value : 'expense';
-    }
-
-    function getFallbackNameFromEmail(email) {
-      if (!email) return 'bạn';
-      const localPart = String(email).split('@')[0].trim();
-      return localPart || 'bạn';
     }
 
     async function loadUserProfileName(user) {
@@ -981,6 +1019,18 @@
       changePasswordStatus.className = 'status';
     }
 
+    function clearProfileStatus() {
+      profileStatus.textContent = '';
+      profileStatus.className = 'status';
+    }
+
+    function closeAuthSubPanels() {
+      profilePanel.classList.add('hidden');
+      changePasswordPanel.classList.add('hidden');
+      btnToggleProfile.classList.remove('active');
+      btnToggleChangePassword.classList.remove('active');
+    }
+
     async function setAuthUI(user) {
       const loggedIn = !!user;
 
@@ -989,10 +1039,11 @@
         authLoggedIn.classList.remove('hidden');
 
         currentProfileName = await loadUserProfileName(user);
-        const helloName = currentProfileName || getFallbackNameFromEmail(user.email);
-        authUserInfo.textContent = `Xin chào ${helloName}, bạn đã đăng nhập thành công với email ${user.email}.`;
+        const helloName = currentProfileName ? `${currentProfileName}, ` : '';
+        authUserInfo.textContent = `Xin chào ${helloName}bạn đã đăng nhập thành công với email ${user.email}.`;
         authStatus.textContent = 'Đăng nhập thành công.';
         authStatus.className = 'status success';
+        profileDisplayNameEl.value = currentProfileName;
       } else {
         currentProfileName = '';
         authLoggedOut.classList.remove('hidden');
@@ -1000,6 +1051,8 @@
         authStatus.textContent = 'Chưa đăng nhập';
         authStatus.className = 'status';
         clearChangePasswordForm();
+        clearProfileStatus();
+        closeAuthSubPanels();
         showLoginMode();
       }
 
@@ -1077,7 +1130,14 @@
           throw new Error('Hãy nhập email tài khoản cần đặt lại mật khẩu.');
         }
 
+        const methods = await fetchSignInMethodsForEmail(auth, email);
+        if (!methods.length) {
+          throw new Error('Email này chưa được đăng ký trong hệ thống.');
+        }
+
         await sendPasswordResetEmail(auth, email);
+        lastUsedEmail = email;
+        localStorage.setItem('lastUsedEmail', email);
         authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}. Hãy kiểm tra Inbox và cả Spam/Junk.`;
         authStatus.className = 'status success';
       } catch (err) {
@@ -1118,6 +1178,33 @@
         console.error('changePasswordWhileLoggedIn error:', err);
         changePasswordStatus.textContent = `Không đổi được mật khẩu: ${err.message}`;
         changePasswordStatus.className = 'status error';
+      }
+    }
+
+    async function saveProfileName() {
+      try {
+        if (!currentUser) {
+          throw new Error('Bạn cần đăng nhập trước.');
+        }
+        const displayName = profileDisplayNameEl.value.trim().replace(/\s+/g, ' ');
+        if (!displayName) {
+          throw new Error('Tên người dùng không được để trống.');
+        }
+
+        await update(ref(db, `profiles/${currentUser.uid}`), {
+          displayName,
+          email: currentUser.email || '',
+          updatedAt: Date.now()
+        });
+
+        currentProfileName = displayName;
+        authUserInfo.textContent = `Xin chào ${currentProfileName}, bạn đã đăng nhập thành công với email ${currentUser.email}.`;
+        profileStatus.textContent = 'Đã cập nhật tên người dùng.';
+        profileStatus.className = 'status success';
+      } catch (err) {
+        console.error('saveProfileName error:', err);
+        profileStatus.textContent = `Không lưu được tên người dùng: ${err.message}`;
+        profileStatus.className = 'status error';
       }
     }
 
@@ -1528,6 +1615,26 @@
     btnLogout.addEventListener('click', logoutUser);
     btnForgotPassword.addEventListener('click', forgotPassword);
     btnChangePassword.addEventListener('click', changePasswordWhileLoggedIn);
+    btnSaveProfile.addEventListener('click', saveProfileName);
+
+    btnToggleProfile.addEventListener('click', () => {
+      const willShow = profilePanel.classList.contains('hidden');
+      changePasswordPanel.classList.add('hidden');
+      btnToggleChangePassword.classList.remove('active');
+      profilePanel.classList.toggle('hidden', !willShow);
+      btnToggleProfile.classList.toggle('active', willShow);
+      clearProfileStatus();
+      profileDisplayNameEl.value = currentProfileName || '';
+    });
+
+    btnToggleChangePassword.addEventListener('click', () => {
+      const willShow = changePasswordPanel.classList.contains('hidden');
+      profilePanel.classList.add('hidden');
+      btnToggleProfile.classList.remove('active');
+      changePasswordPanel.classList.toggle('hidden', !willShow);
+      btnToggleChangePassword.classList.toggle('active', willShow);
+      clearChangePasswordForm();
+    });
 
     btnSave.addEventListener('click', saveEntry);
     btnReset.addEventListener('click', resetInputs);
