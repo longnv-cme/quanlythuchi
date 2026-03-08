@@ -1,4 +1,5 @@
 <!doctype html>
+<!--bản R0.5 cập nhật phần chỉnh sửa lịch sử nhập liệu theo popup, thêm các nút hủy trong phần thay đổi tên người dùng và mật khẩu-->
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +11,6 @@
       --card: #ffffff;
       --text: #0f172a;
       --muted: #64748b;
-      --muted-2: #94a3b8;
       --border: #dbe4f0;
       --primary: #2563eb;
       --primary-2: #1d4ed8;
@@ -392,6 +392,26 @@
       width: 100%;
     }
 
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .modal-card {
+      width: min(100%, 520px);
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 30px 60px rgba(15, 23, 42, 0.25);
+      padding: 20px;
+    }
+
     @media (max-width: 980px) {
       .grid-2, .grid-4 { grid-template-columns: 1fr; }
     }
@@ -485,6 +505,7 @@
           </div>
           <div class="actions" style="margin-top: 12px;">
             <button id="btnSaveProfile" class="btn-primary" type="button">Lưu tên người dùng</button>
+            <button id="btnCancelProfile" class="btn-soft" type="button">Hủy</button>
           </div>
           <div id="profileStatus" class="status"></div>
         </div>
@@ -511,6 +532,7 @@
               <label for="showChangePassword" style="margin:0;">Hiện mật khẩu</label>
             </div>
             <button id="btnChangePassword" class="btn-primary" type="button">Thay đổi mật khẩu</button>
+            <button id="btnCancelChangePassword" class="btn-soft" type="button">Hủy</button>
           </div>
           <div id="changePasswordStatus" class="status"></div>
         </div>
@@ -692,9 +714,37 @@
             </tr>
           </thead>
           <tbody id="historyBody">
-            <tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>
+            <tr><td colspan="6" class="center history-note">Chưa có dữ liệu.</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3>Chỉnh sửa giao dịch</h3>
+
+      <label for="editDate">Ngày</label>
+      <input id="editDate" type="date" />
+
+      <label for="editType" style="margin-top:10px;">Loại</label>
+      <select id="editType">
+        <option value="expense">Chi</option>
+        <option value="income">Thu</option>
+      </select>
+
+      <label for="editContent" style="margin-top:10px;">Nội dung</label>
+      <input id="editContent" type="text" />
+
+      <label for="editAmount" style="margin-top:10px;">Số tiền</label>
+      <input id="editAmount" type="text" inputmode="numeric" />
+
+      <div id="editStatus" class="status"></div>
+
+      <div class="actions" style="margin-top:14px; justify-content:flex-end;">
+        <button id="btnCancelEdit" class="btn-soft" type="button">Hủy</button>
+        <button id="btnSaveEdit" class="btn-primary" type="button">Lưu thay đổi</button>
       </div>
     </div>
   </div>
@@ -767,6 +817,7 @@
     const profilePanel = document.getElementById('profilePanel');
     const profileDisplayNameEl = document.getElementById('profileDisplayName');
     const btnSaveProfile = document.getElementById('btnSaveProfile');
+    const btnCancelProfile = document.getElementById('btnCancelProfile');
     const profileStatus = document.getElementById('profileStatus');
 
     const btnToggleChangePassword = document.getElementById('btnToggleChangePassword');
@@ -776,6 +827,7 @@
     const newPasswordConfirmEl = document.getElementById('newPasswordConfirm');
     const showChangePasswordEl = document.getElementById('showChangePassword');
     const btnChangePassword = document.getElementById('btnChangePassword');
+    const btnCancelChangePassword = document.getElementById('btnCancelChangePassword');
     const changePasswordStatus = document.getElementById('changePasswordStatus');
 
     const entryDateEl = document.getElementById('entryDate');
@@ -809,12 +861,22 @@
     const canvas = document.getElementById('statsChart');
     const ctx = canvas.getContext('2d');
 
+    const editModal = document.getElementById('editModal');
+    const editDateEl = document.getElementById('editDate');
+    const editTypeEl = document.getElementById('editType');
+    const editContentEl = document.getElementById('editContent');
+    const editAmountEl = document.getElementById('editAmount');
+    const editStatus = document.getElementById('editStatus');
+    const btnCancelEdit = document.getElementById('btnCancelEdit');
+    const btnSaveEdit = document.getElementById('btnSaveEdit');
+
     let currentUser = null;
     let currentProfileName = '';
     let unsubscribeRecords = null;
     let allRecords = [];
     let lastGroupedStats = [];
     let lastUsedEmail = localStorage.getItem('lastUsedEmail') || '';
+    let editingRecordId = null;
 
     function setActiveTopButton(active) {
       btnShowLogin.classList.toggle('active', active === 'login');
@@ -895,6 +957,15 @@
       const yyyy = now.getFullYear();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getISODateText(date) {
+      const d = parseDateSafe(date);
+      if (!d) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
     }
 
@@ -1286,45 +1357,6 @@
       }
     }
 
-    async function editEntry(recordId) {
-      if (!currentUser) return;
-
-      const record = allRecords.find(r => r.id === recordId);
-      if (!record) return;
-
-      const newDate = prompt('Nhập ngày (YYYY-MM-DD):', getISODateText(record.createdAt));
-      if (!newDate) return;
-
-      const newType = prompt('Nhập loại (income hoặc expense):', record.entryType);
-      if (!newType) return;
-
-      const newContent = prompt('Nhập nội dung:', record.content);
-      if (!newContent) return;
-
-      const newAmountStr = prompt('Nhập số tiền:', record.amount);
-      if (!newAmountStr) return;
-
-      const newAmount = Number(String(newAmountStr).replace(/[^0-9]/g,''));
-      if (!newAmount || newAmount <= 0) {
-        alert('Số tiền không hợp lệ');
-        return;
-      }
-
-      try {
-        await update(ref(db, `cashflow/${currentUser.uid}/${recordId}`), {
-          entryType: newType === 'income' ? 'income' : 'expense',
-          amount: newAmount,
-          content: newContent.trim(),
-          contentNormalized: newContent.trim().toLowerCase(),
-          createdAt: new Date(`${newDate}T12:00:00`).getTime(),
-          updatedAt: Date.now()
-        });
-      } catch (err) {
-        console.error('editEntry error:', err);
-        alert('Không thể cập nhật: ' + err.message);
-      }
-    }
-
     async function deleteEntry(recordId) {
       if (!currentUser) return;
       const ok = window.confirm('Bạn có chắc muốn xóa giao dịch này?');
@@ -1338,18 +1370,73 @@
       }
     }
 
+    function openEditModal(record) {
+      editingRecordId = record.id;
+      editDateEl.value = getISODateText(record.createdAt);
+      editTypeEl.value = record.entryType === 'income' ? 'income' : 'expense';
+      editContentEl.value = record.content || '';
+      editAmountEl.value = String(record.amount || '');
+      editStatus.textContent = '';
+      editStatus.className = 'status';
+      editModal.classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      editingRecordId = null;
+      editModal.classList.add('hidden');
+      editStatus.textContent = '';
+      editStatus.className = 'status';
+    }
+
+    async function editEntry(recordId) {
+      if (!currentUser) return;
+      const record = allRecords.find(r => r.id === recordId);
+      if (!record) return;
+      openEditModal(record);
+    }
+
+    async function saveEditedEntry() {
+      try {
+        if (!currentUser || !editingRecordId) return;
+
+        const dateValue = (editDateEl.value || '').trim();
+        const typeValue = editTypeEl.value === 'income' ? 'income' : 'expense';
+        const contentValue = (editContentEl.value || '').trim().replace(/\s+/g, ' ');
+        const amountValue = String(editAmountEl.value || '').replace(/\s+/g, '').replace(/,/g, '');
+
+        if (!dateValue) {
+          throw new Error('Vui lòng chọn ngày.');
+        }
+        if (dateValue > getTodayLocalDateString()) {
+          throw new Error('Ngày không được lớn hơn ngày hiện tại.');
+        }
+        if (!contentValue) {
+          throw new Error('Nội dung không được để trống.');
+        }
+        if (!/^\d+$/.test(amountValue) || Number(amountValue) <= 0) {
+          throw new Error('Số tiền không hợp lệ.');
+        }
+
+        await update(ref(db, `cashflow/${currentUser.uid}/${editingRecordId}`), {
+          entryType: typeValue,
+          content: contentValue,
+          contentNormalized: contentValue.toLowerCase(),
+          amount: Number(amountValue),
+          createdAt: new Date(`${dateValue}T12:00:00`).getTime(),
+          updatedAt: Date.now()
+        });
+
+        closeEditModal();
+      } catch (err) {
+        console.error('saveEditedEntry error:', err);
+        editStatus.textContent = err.message || 'Không thể lưu thay đổi.';
+        editStatus.className = 'status error';
+      }
+    }
+
     function getYearKey(date) {
       const d = new Date(date);
       return String(d.getFullYear());
-    }
-
-    function getISODateText(date) {
-      const d = parseDateSafe(date);
-      if (!d) return '';
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
     }
 
     function getWeekKey(date) {
@@ -1407,7 +1494,7 @@
 
     function renderHistory(records) {
       if (!records.length) {
-        historyBody.innerHTML = '<tr><td colspan="5" class="center history-note">Chưa có dữ liệu.</td></tr>';
+        historyBody.innerHTML = '<tr><td colspan="6" class="center history-note">Chưa có dữ liệu.</td></tr>';
         return;
       }
 
@@ -1684,6 +1771,19 @@
     btnChangePassword.addEventListener('click', changePasswordWhileLoggedIn);
     btnSaveProfile.addEventListener('click', saveProfileName);
 
+    btnCancelProfile.addEventListener('click', () => {
+      profilePanel.classList.add('hidden');
+      btnToggleProfile.classList.remove('active');
+      clearProfileStatus();
+      profileDisplayNameEl.value = currentProfileName || '';
+    });
+
+    btnCancelChangePassword.addEventListener('click', () => {
+      changePasswordPanel.classList.add('hidden');
+      btnToggleChangePassword.classList.remove('active');
+      clearChangePasswordForm();
+    });
+
     btnToggleProfile.addEventListener('click', () => {
       const willShow = profilePanel.classList.contains('hidden');
       changePasswordPanel.classList.add('hidden');
@@ -1701,6 +1801,12 @@
       changePasswordPanel.classList.toggle('hidden', !willShow);
       btnToggleChangePassword.classList.toggle('active', willShow);
       clearChangePasswordForm();
+    });
+
+    btnCancelEdit.addEventListener('click', closeEditModal);
+    btnSaveEdit.addEventListener('click', saveEditedEntry);
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeEditModal();
     });
 
     btnSave.addEventListener('click', saveEntry);
@@ -1749,73 +1855,5 @@
     recalcEntryInput();
     drawChart([]);
   </script>
-  
-  <!-- Popup chỉnh sửa giao dịch -->
-  <div id="editModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:9999;">
-    <div style="background:#fff;border-radius:16px;padding:20px;max-width:420px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,0.25);">
-      <h3 style="margin-top:0">Chỉnh sửa giao dịch</h3>
-      <label>Ngày</label>
-      <input id="editDate" type="date" />
-      <label style="margin-top:10px">Loại</label>
-      <select id="editType">
-        <option value="expense">Chi</option>
-        <option value="income">Thu</option>
-      </select>
-      <label style="margin-top:10px">Nội dung</label>
-      <input id="editContent" type="text" />
-      <label style="margin-top:10px">Số tiền</label>
-      <input id="editAmount" type="text" />
-      <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-        <button id="btnCancelEdit" class="btn-soft" type="button">Hủy</button>
-        <button id="btnSaveEdit" class="btn-primary" type="button">Lưu thay đổi</button>
-      </div>
-    </div>
-  </div>
-
-<script>
-let editingRecordId = null;
-const editModal = document.getElementById('editModal');
-const editDate = document.getElementById('editDate');
-const editType = document.getElementById('editType');
-const editContent = document.getElementById('editContent');
-const editAmount = document.getElementById('editAmount');
-const btnSaveEdit = document.getElementById('btnSaveEdit');
-const btnCancelEdit = document.getElementById('btnCancelEdit');
-
-function openEditModal(record){
-  editingRecordId = record.id;
-  editDate.value = new Date(record.createdAt).toISOString().slice(0,10);
-  editType.value = record.entryType;
-  editContent.value = record.content;
-  editAmount.value = record.amount;
-  editModal.classList.remove('hidden');
-}
-
-btnCancelEdit.onclick = ()=>{
-  editModal.classList.add('hidden');
-  editingRecordId = null;
-};
-
-btnSaveEdit.onclick = async ()=>{
-  if(!editingRecordId || !currentUser) return;
-
-  const amount = Number(String(editAmount.value).replace(/[^0-9]/g,''));
-  if(!amount){ alert('Số tiền không hợp lệ'); return; }
-
-  const newDate = new Date(editDate.value + 'T12:00:00').getTime();
-
-  await update(ref(db,`cashflow/${currentUser.uid}/${editingRecordId}`),{
-    entryType: editType.value,
-    content: editContent.value.trim(),
-    contentNormalized: editContent.value.trim().toLowerCase(),
-    amount: amount,
-    createdAt: newDate,
-    updatedAt: Date.now()
-  });
-
-  editModal.classList.add('hidden');
-  editingRecordId = null;
-};
-</script>
 </body>
 </html>
