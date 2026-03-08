@@ -1,4 +1,5 @@
 <!doctype html>
+<!--Bản r0.2 cập nhật thêm phần đổi mật khẩu trong khi đang dăng nhập và thêm tên người dùng, sẽ phải đổi lại rules vì có thểm trường tên người dùng-->
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +17,6 @@
       --danger: #dc2626;
       --danger-bg: #fef2f2;
       --success: #16a34a;
-      --success-bg: #f0fdf4;
       --income: #059669;
       --expense: #dc2626;
       --radius: 18px;
@@ -65,6 +65,11 @@
       font-size: 18px;
     }
 
+    h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
     .small {
       color: var(--muted);
       font-size: 13px;
@@ -82,12 +87,6 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 18px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
     }
 
     .grid-4 {
@@ -216,16 +215,58 @@
       font-weight: 700;
     }
 
-    .type-toggle input:checked + label {
-      color: #fff;
+    .type-toggle input:checked + label { color: #fff; }
+    .type-toggle input[value="expense"]:checked + label { background: var(--expense); }
+    .type-toggle input[value="income"]:checked + label { background: var(--income); }
+
+    .auth-switch {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
     }
 
-    .type-toggle input[value="expense"]:checked + label {
-      background: var(--expense);
+    .auth-panel {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
     }
 
-    .type-toggle input[value="income"]:checked + label {
-      background: var(--income);
+    .hidden { display: none !important; }
+
+    .inline-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+    }
+
+    .inline-check input[type="checkbox"] {
+      width: auto;
+      min-height: auto;
+      margin: 0;
+    }
+
+    .link-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      padding: 0;
+      min-height: auto;
+      font-weight: 600;
+    }
+
+    .link-btn:hover {
+      text-decoration: underline;
+      filter: none;
+    }
+
+    .subcard {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      background: #fafcff;
     }
 
     table {
@@ -337,7 +378,7 @@
     }
 
     @media (max-width: 980px) {
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -354,22 +395,97 @@
 
     <div class="card">
       <h2>Tài khoản</h2>
-      <div class="auth-grid">
-        <div style="flex:1 1 260px;">
-          <label for="email">Email</label>
-          <input id="email" type="email" placeholder="name@example.com" />
+
+      <div id="authLoggedOut">
+        <div class="auth-switch">
+          <button id="btnShowLogin" class="btn-primary" type="button">Đăng nhập</button>
+          <button id="btnShowRegister" type="button">Đăng ký</button>
         </div>
-        <div style="flex:1 1 260px;">
-          <label for="password">Mật khẩu</label>
-          <input id="password" type="password" placeholder="Tối thiểu 6 ký tự" />
+
+        <div id="loginPanel" class="auth-panel">
+          <div class="auth-grid">
+            <div style="flex:1 1 260px;">
+              <label for="loginEmail">Email</label>
+              <input id="loginEmail" type="email" placeholder="name@example.com" autocomplete="username" />
+            </div>
+            <div style="flex:1 1 260px;">
+              <label for="loginPassword">Mật khẩu</label>
+              <input id="loginPassword" type="password" placeholder="Mật khẩu" autocomplete="current-password" />
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 12px;">
+            <div class="inline-check">
+              <input id="showLoginPassword" type="checkbox" />
+              <label for="showLoginPassword" style="margin:0;">Hiện mật khẩu</label>
+            </div>
+            <button id="btnLogin" class="btn-primary" type="button">Đăng nhập</button>
+            <button id="btnForgotPassword" class="link-btn" type="button">Quên mật khẩu?</button>
+          </div>
+        </div>
+
+        <div id="registerPanel" class="auth-panel hidden">
+          <div class="auth-grid">
+            <div style="flex:1 1 260px;">
+              <label for="registerName">Tên người dùng</label>
+              <input id="registerName" type="text" placeholder="Ví dụ: Nguyễn Văn A" />
+            </div>
+            <div style="flex:1 1 260px;">
+              <label for="registerEmail">Email</label>
+              <input id="registerEmail" type="email" placeholder="name@example.com" autocomplete="username" />
+            </div>
+            <div style="flex:1 1 260px;">
+              <label for="registerPassword">Mật khẩu</label>
+              <input id="registerPassword" type="password" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password" />
+            </div>
+            <div style="flex:1 1 260px;">
+              <label for="registerPasswordConfirm">Nhập lại mật khẩu</label>
+              <input id="registerPasswordConfirm" type="password" placeholder="Nhập lại mật khẩu" autocomplete="new-password" />
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 12px;">
+            <div class="inline-check">
+              <input id="showRegisterPassword" type="checkbox" />
+              <label for="showRegisterPassword" style="margin:0;">Hiện mật khẩu</label>
+            </div>
+            <button id="btnRegister" class="btn-primary" type="button">Đăng ký</button>
+          </div>
         </div>
       </div>
-      <div class="actions" style="margin-top: 12px;">
-        <button id="btnRegister" class="btn-primary" type="button">Đăng ký</button>
-        <button id="btnLogin" type="button">Đăng nhập</button>
-        <button id="btnLogout" class="btn-danger" type="button" disabled>Đăng xuất</button>
-        <span id="authStatus" class="status" style="margin-top:0;">Chưa đăng nhập</span>
+
+      <div id="authLoggedIn" class="hidden">
+        <div class="actions">
+          <span id="authUserInfo" class="status" style="margin-top:0;"></span>
+          <button id="btnLogout" class="btn-danger" type="button">Đăng xuất</button>
+        </div>
+
+        <div class="subcard">
+          <h3>Đổi mật khẩu</h3>
+          <div class="auth-grid">
+            <div style="flex:1 1 220px;">
+              <label for="currentPassword">Mật khẩu hiện tại</label>
+              <input id="currentPassword" type="password" placeholder="Nhập mật khẩu hiện tại" autocomplete="current-password" />
+            </div>
+            <div style="flex:1 1 220px;">
+              <label for="newPassword">Mật khẩu mới</label>
+              <input id="newPassword" type="password" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password" />
+            </div>
+            <div style="flex:1 1 220px;">
+              <label for="newPasswordConfirm">Nhập lại mật khẩu mới</label>
+              <input id="newPasswordConfirm" type="password" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password" />
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 12px;">
+            <div class="inline-check">
+              <input id="showChangePassword" type="checkbox" />
+              <label for="showChangePassword" style="margin:0;">Hiện mật khẩu</label>
+            </div>
+            <button id="btnChangePassword" class="btn-primary" type="button">Thay đổi mật khẩu</button>
+          </div>
+          <div id="changePasswordStatus" class="status"></div>
+        </div>
       </div>
+
+      <div id="authStatus" class="status">Chưa đăng nhập</div>
     </div>
 
     <div class="grid-2">
@@ -558,7 +674,11 @@
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       signOut,
-      onAuthStateChanged
+      onAuthStateChanged,
+      sendPasswordResetEmail,
+      updatePassword,
+      EmailAuthProvider,
+      reauthenticateWithCredential
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import {
       getDatabase,
@@ -566,7 +686,9 @@
       push,
       onValue,
       remove,
-      serverTimestamp
+      serverTimestamp,
+      set,
+      get
     } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
     const firebaseConfig = {
@@ -584,12 +706,36 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    const emailEl = document.getElementById('email');
-    const passwordEl = document.getElementById('password');
-    const btnRegister = document.getElementById('btnRegister');
-    const btnLogin = document.getElementById('btnLogin');
-    const btnLogout = document.getElementById('btnLogout');
+    const authLoggedOut = document.getElementById('authLoggedOut');
+    const authLoggedIn = document.getElementById('authLoggedIn');
+    const authUserInfo = document.getElementById('authUserInfo');
     const authStatus = document.getElementById('authStatus');
+
+    const btnShowLogin = document.getElementById('btnShowLogin');
+    const btnShowRegister = document.getElementById('btnShowRegister');
+    const loginPanel = document.getElementById('loginPanel');
+    const registerPanel = document.getElementById('registerPanel');
+
+    const loginEmailEl = document.getElementById('loginEmail');
+    const loginPasswordEl = document.getElementById('loginPassword');
+    const showLoginPasswordEl = document.getElementById('showLoginPassword');
+    const btnLogin = document.getElementById('btnLogin');
+    const btnForgotPassword = document.getElementById('btnForgotPassword');
+
+    const registerNameEl = document.getElementById('registerName');
+    const registerEmailEl = document.getElementById('registerEmail');
+    const registerPasswordEl = document.getElementById('registerPassword');
+    const registerPasswordConfirmEl = document.getElementById('registerPasswordConfirm');
+    const showRegisterPasswordEl = document.getElementById('showRegisterPassword');
+    const btnRegister = document.getElementById('btnRegister');
+    const btnLogout = document.getElementById('btnLogout');
+
+    const currentPasswordEl = document.getElementById('currentPassword');
+    const newPasswordEl = document.getElementById('newPassword');
+    const newPasswordConfirmEl = document.getElementById('newPasswordConfirm');
+    const showChangePasswordEl = document.getElementById('showChangePassword');
+    const btnChangePassword = document.getElementById('btnChangePassword');
+    const changePasswordStatus = document.getElementById('changePasswordStatus');
 
     const entryDateEl = document.getElementById('entryDate');
     const entryAmountEl = document.getElementById('entryAmount');
@@ -623,9 +769,52 @@
     const ctx = canvas.getContext('2d');
 
     let currentUser = null;
+    let currentProfileName = '';
     let unsubscribeRecords = null;
     let allRecords = [];
     let lastGroupedStats = [];
+    let lastUsedEmail = localStorage.getItem('lastUsedEmail') || '';
+
+    function showLoginMode() {
+      loginPanel.classList.remove('hidden');
+      registerPanel.classList.add('hidden');
+      btnShowLogin.classList.add('btn-primary');
+      btnShowRegister.classList.remove('btn-primary');
+      loginEmailEl.value = lastUsedEmail;
+      loginPasswordEl.value = '';
+    }
+
+    function showRegisterMode() {
+      registerPanel.classList.remove('hidden');
+      loginPanel.classList.add('hidden');
+      btnShowRegister.classList.add('btn-primary');
+      btnShowLogin.classList.remove('btn-primary');
+      registerEmailEl.value = lastUsedEmail;
+      registerNameEl.value = '';
+      registerPasswordEl.value = '';
+      registerPasswordConfirmEl.value = '';
+    }
+
+    function setPasswordVisibility(inputEls, visible) {
+      inputEls.forEach(el => {
+        el.type = visible ? 'text' : 'password';
+      });
+    }
+
+    showLoginPasswordEl.addEventListener('change', () => {
+      setPasswordVisibility([loginPasswordEl], showLoginPasswordEl.checked);
+    });
+
+    showRegisterPasswordEl.addEventListener('change', () => {
+      setPasswordVisibility([registerPasswordEl, registerPasswordConfirmEl], showRegisterPasswordEl.checked);
+    });
+
+    showChangePasswordEl.addEventListener('change', () => {
+      setPasswordVisibility([currentPasswordEl, newPasswordEl, newPasswordConfirmEl], showChangePasswordEl.checked);
+    });
+
+    btnShowLogin.addEventListener('click', showLoginMode);
+    btnShowRegister.addEventListener('click', showRegisterMode);
 
     function formatThousands(n) {
       return Number(n || 0).toLocaleString('en-US');
@@ -673,6 +862,27 @@
     function getSelectedEntryType() {
       const selected = document.querySelector('input[name="entryType"]:checked');
       return selected ? selected.value : 'expense';
+    }
+
+    function getFallbackNameFromEmail(email) {
+      if (!email) return 'bạn';
+      const localPart = String(email).split('@')[0].trim();
+      return localPart || 'bạn';
+    }
+
+    async function loadUserProfileName(user) {
+      if (!user) return '';
+      try {
+        const snap = await get(ref(db, `profiles/${user.uid}`));
+        if (snap.exists()) {
+          const data = snap.val() || {};
+          return (data.displayName || '').trim();
+        }
+        return '';
+      } catch (err) {
+        console.error('loadUserProfileName error:', err);
+        return '';
+      }
     }
 
     function initializeEntryDate() {
@@ -763,30 +973,67 @@
       inputStatus.className = 'status';
     }
 
-    function setAuthUI(user) {
+    function clearChangePasswordForm() {
+      currentPasswordEl.value = '';
+      newPasswordEl.value = '';
+      newPasswordConfirmEl.value = '';
+      changePasswordStatus.textContent = '';
+      changePasswordStatus.className = 'status';
+    }
+
+    async function setAuthUI(user) {
       const loggedIn = !!user;
-      btnRegister.disabled = loggedIn;
-      btnLogin.disabled = loggedIn;
-      emailEl.disabled = loggedIn;
-      passwordEl.disabled = loggedIn;
-      btnLogout.disabled = !loggedIn;
 
       if (loggedIn) {
-        authStatus.textContent = `Đã đăng nhập: ${user.email}`;
+        authLoggedOut.classList.add('hidden');
+        authLoggedIn.classList.remove('hidden');
+
+        currentProfileName = await loadUserProfileName(user);
+        const helloName = currentProfileName || getFallbackNameFromEmail(user.email);
+        authUserInfo.textContent = `Xin chào ${helloName}, bạn đã đăng nhập thành công với email ${user.email}.`;
+        authStatus.textContent = 'Đăng nhập thành công.';
         authStatus.className = 'status success';
       } else {
+        currentProfileName = '';
+        authLoggedOut.classList.remove('hidden');
+        authLoggedIn.classList.add('hidden');
         authStatus.textContent = 'Chưa đăng nhập';
         authStatus.className = 'status';
+        clearChangePasswordForm();
+        showLoginMode();
       }
+
       validateEntryDate();
     }
 
     async function registerUser() {
       try {
-        const email = emailEl.value.trim();
-        const password = passwordEl.value;
-        if (!email || !password) throw new Error('Vui lòng nhập email và mật khẩu.');
-        await createUserWithEmailAndPassword(auth, email, password);
+        const displayName = registerNameEl.value.trim().replace(/\s+/g, ' ');
+        const email = registerEmailEl.value.trim();
+        const password = registerPasswordEl.value;
+        const confirmPassword = registerPasswordConfirmEl.value;
+
+        if (!displayName || !email || !password || !confirmPassword) {
+          throw new Error('Vui lòng nhập đầy đủ tên người dùng, email và mật khẩu.');
+        }
+        if (password.length < 6) {
+          throw new Error('Mật khẩu phải có ít nhất 6 ký tự.');
+        }
+        if (password !== confirmPassword) {
+          throw new Error('Mật khẩu nhập lại không khớp.');
+        }
+
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+        await set(ref(db, `profiles/${cred.user.uid}`), {
+          displayName,
+          email,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+
+        lastUsedEmail = email;
+        localStorage.setItem('lastUsedEmail', email);
       } catch (err) {
         console.error('registerUser error:', err);
         authStatus.textContent = `Đăng ký lỗi: ${err.message}`;
@@ -796,10 +1043,16 @@
 
     async function loginUser() {
       try {
-        const email = emailEl.value.trim();
-        const password = passwordEl.value;
-        if (!email || !password) throw new Error('Vui lòng nhập email và mật khẩu.');
+        const email = loginEmailEl.value.trim();
+        const password = loginPasswordEl.value;
+
+        if (!email || !password) {
+          throw new Error('Vui lòng nhập email và mật khẩu.');
+        }
+
         await signInWithEmailAndPassword(auth, email, password);
+        lastUsedEmail = email;
+        localStorage.setItem('lastUsedEmail', email);
       } catch (err) {
         console.error('loginUser error:', err);
         authStatus.textContent = `Đăng nhập lỗi: ${err.message}`;
@@ -814,6 +1067,57 @@
         console.error('logoutUser error:', err);
         authStatus.textContent = `Đăng xuất lỗi: ${err.message}`;
         authStatus.className = 'status error';
+      }
+    }
+
+    async function forgotPassword() {
+      try {
+        const email = loginEmailEl.value.trim() || lastUsedEmail;
+        if (!email) {
+          throw new Error('Hãy nhập email tài khoản cần đặt lại mật khẩu.');
+        }
+
+        await sendPasswordResetEmail(auth, email);
+        authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}. Hãy kiểm tra Inbox và cả Spam/Junk.`;
+        authStatus.className = 'status success';
+      } catch (err) {
+        console.error('forgotPassword error:', err);
+        authStatus.textContent = `Không gửi được email đặt lại mật khẩu: ${err.message}`;
+        authStatus.className = 'status error';
+      }
+    }
+
+    async function changePasswordWhileLoggedIn() {
+      try {
+        if (!currentUser || !currentUser.email) {
+          throw new Error('Bạn cần đăng nhập trước.');
+        }
+
+        const currentPassword = currentPasswordEl.value;
+        const newPassword = newPasswordEl.value;
+        const newPasswordConfirm = newPasswordConfirmEl.value;
+
+        if (!currentPassword || !newPassword || !newPasswordConfirm) {
+          throw new Error('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
+        }
+        if (newPassword.length < 6) {
+          throw new Error('Mật khẩu mới phải có ít nhất 6 ký tự.');
+        }
+        if (newPassword !== newPasswordConfirm) {
+          throw new Error('Mật khẩu mới nhập lại không khớp.');
+        }
+
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+        await reauthenticateWithCredential(currentUser, credential);
+        await updatePassword(currentUser, newPassword);
+
+        clearChangePasswordForm();
+        changePasswordStatus.textContent = 'Đã thay đổi mật khẩu thành công.';
+        changePasswordStatus.className = 'status success';
+      } catch (err) {
+        console.error('changePasswordWhileLoggedIn error:', err);
+        changePasswordStatus.textContent = `Không đổi được mật khẩu: ${err.message}`;
+        changePasswordStatus.className = 'status error';
       }
     }
 
@@ -851,6 +1155,7 @@
         await push(ref(db, `cashflow/${currentUser.uid}`), {
           userId: currentUser.uid,
           userEmail: currentUser.email || '',
+          userName: currentProfileName || '',
           entryType,
           amount,
           content,
@@ -949,11 +1254,6 @@
         && matchesContentKeyword(record, keyword)
         && matchesTypeFilter(record, typeFilter)
       ));
-    }
-
-    function getSignedAmount(record) {
-      const amount = Number(record.amount || 0);
-      return record.entryType === 'income' ? amount : -amount;
     }
 
     function renderHistory(records) {
@@ -1226,6 +1526,9 @@
     btnRegister.addEventListener('click', registerUser);
     btnLogin.addEventListener('click', loginUser);
     btnLogout.addEventListener('click', logoutUser);
+    btnForgotPassword.addEventListener('click', forgotPassword);
+    btnChangePassword.addEventListener('click', changePasswordWhileLoggedIn);
+
     btnSave.addEventListener('click', saveEntry);
     btnReset.addEventListener('click', resetInputs);
     btnLoadStats.addEventListener('click', applyFiltersAndRender);
@@ -1253,9 +1556,9 @@
     entryAmountEl.addEventListener('blur', recalcEntryInput);
     entryTypeEls.forEach(el => el.addEventListener('change', recalcEntryInput));
 
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, async user => {
       currentUser = user;
-      setAuthUI(user);
+      await setAuthUI(user);
       if (user) {
         subscribeUserRecords(user);
       } else {
@@ -1267,6 +1570,7 @@
       }
     });
 
+    showLoginMode();
     initializeEntryDate();
     recalcEntryInput();
     drawChart([]);
