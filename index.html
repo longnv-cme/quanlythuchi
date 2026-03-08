@@ -1129,16 +1129,8 @@
         if (!email) {
           throw new Error('Hãy nhập email tài khoản cần đặt lại mật khẩu.');
         }
-
-        const methods = await fetchSignInMethodsForEmail(auth, email);
-        if (!methods.length) {
-          throw new Error('Email này chưa được đăng ký trong hệ thống.');
-        }
-
         await sendPasswordResetEmail(auth, email);
-        lastUsedEmail = email;
-        localStorage.setItem('lastUsedEmail', email);
-        authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}. Hãy kiểm tra Inbox và cả Spam/Junk.`;
+        authStatus.textContent = `Đã gửi email đặt lại mật khẩu tới ${email}.`;
         authStatus.className = 'status success';
       } catch (err) {
         console.error('forgotPassword error:', err);
